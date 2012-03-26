@@ -40,22 +40,26 @@ if node['ec2']
   root_pw = String.new
   snapshots_to_keep = String.new
 
-  search(:apps) do |app|
-    if (app["database_master_role"] & node.run_list.roles).length == 1 || (app["database_slave_role"] & node.run_list.roles).length == 1
-      master_role = app["database_master_role"]
-      slave_role = app["database_slave_role"]
-      root_pw = app["mysql_root_password"][node.chef_environment]
-      snapshots_to_keep = app["snapshots_to_keep"][node.chef_environment]
+  if Chef::Config[:solo]
+    Chef::Log.warn("This recipe uses search. Chef Solo does not support search.")
+  else
+    search(:apps) do |app|
+      if (app["database_master_role"] & node.run_list.roles).length == 1 || (app["database_slave_role"] & node.run_list.roles).length == 1
+        master_role = app["database_master_role"]
+        slave_role = app["database_slave_role"]
+        root_pw = app["mysql_root_password"][node.chef_environment]
+        snapshots_to_keep = app["snapshots_to_keep"][node.chef_environment]
 
-      if (master_role & node.run_list.roles).length == 1
-        db_type = "master"
-        db_role = master_role
-      elsif (slave_role & node.run_list.roles).length == 1
-        db_type = "slave"
-        db_role = slave_role
+        if (master_role & node.run_list.roles).length == 1
+          db_type = "master"
+          db_role = master_role
+        elsif (slave_role & node.run_list.roles).length == 1
+          db_type = "slave"
+          db_role = slave_role
+        end
+
+        Chef::Log.info "database::ebs_volume - db_role: #{db_role} db_type: #{db_type}"
       end
-
-      Chef::Log.info "database::ebs_volume - db_role: #{db_role} db_type: #{db_type}"
     end
   end
 
